@@ -1,0 +1,74 @@
+Deploy log
+Initializing
+Complete
+Building
+Failed
+1:35:32 PM: Netlify Build                                                 
+1:35:32 PM: ────────────────────────────────────────────────────────────────
+1:35:32 PM: ​
+1:35:32 PM: ❯ Version
+1:35:32 PM:   @netlify/build 36.1.2
+1:35:32 PM: ​
+1:35:32 PM: ❯ Flags
+1:35:32 PM:   accountId: 5c9a4f966df558b18a0cd45d
+1:35:32 PM:   baseRelDir: true
+1:35:32 PM:   buildId: 6a4d3895b7639c0008a0ad66
+1:35:32 PM:   deployId: 6a4d3895b7639c0008a0ad68
+1:35:32 PM: ​
+1:35:32 PM: ❯ Current directory
+1:35:32 PM:   /opt/build/repo
+1:35:32 PM: ​
+1:35:32 PM: ❯ Config file
+1:35:32 PM:   /opt/build/repo/netlify.toml
+1:35:32 PM: ​
+1:35:32 PM: ❯ Context
+1:35:32 PM:   production
+1:35:32 PM: ​
+1:35:32 PM: build.command from netlify.toml                               
+1:35:32 PM: ────────────────────────────────────────────────────────────────
+1:35:32 PM: ​
+1:35:32 PM: $ npm run build
+1:35:32 PM: > starter-kit-v4@1.0.0 build
+1:35:32 PM: > npm run build:sass && npm run build:eleventy
+1:35:32 PM: > starter-kit-v4@1.0.0 build:sass
+1:35:32 PM: > ./node_modules/.bin/sass src/assets/sass:./src/assets/css
+1:35:32 PM: sh: 1: ./node_modules/.bin/sass: not found
+1:35:32 PM: ​
+1:35:32 PM: "build.command" failed                                        
+1:35:32 PM: ────────────────────────────────────────────────────────────────
+1:35:32 PM: ​
+1:35:32 PM:   Error message
+1:35:32 PM:   Command failed with exit code 127: npm run build (https://ntl.fyi/exit-code-127)
+1:35:32 PM: ​
+1:35:32 PM:   Error location
+1:35:32 PM:   In build.command from netlify.toml:
+1:35:32 PM:   npm run build
+1:35:32 PM: ​
+1:35:32 PM:   Resolved config
+1:35:32 PM:   build:
+1:35:32 PM:     command: npm run build
+1:35:32 PM:     commandOrigin: config
+1:35:32 PM:     environment:
+1:35:32 PM:       - NODE_VERSION
+1:35:32 PM:       - NPM_FLAGS
+1:35:32 PM:     publish: /opt/build/repo/public
+1:35:32 PM:     publishOrigin: config
+1:35:33 PM: Failed during stage 'building site': Build script returned non-zero exit code: 2 (https://ntl.fyi/exit-code-2)
+1:35:33 PM: Build failed due to a user error: Build script returned non-zero exit code: 2
+1:35:33 PM: Failing build: Failed to build site
+1:35:33 PM: Finished processing build request in 1m18.457s
+Deploying
+Skipped
+Cleanup
+Skipped
+Post-processing
+Skipped
+
+    Docs
+    Pricing
+    Support
+    Blog
+    Changelog
+    Terms
+
+© 2026 Netlify
