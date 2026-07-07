@@ -1,0 +1,53 @@
+1:18:18 PM: Netlify Build                                                 
+1:18:18 PM: ────────────────────────────────────────────────────────────────
+1:18:18 PM: ​
+1:18:18 PM: ❯ Version
+1:18:18 PM:   @netlify/build 36.1.2
+1:18:18 PM: ​
+1:18:18 PM: ❯ Flags
+1:18:18 PM:   accountId: 5c9a4f966df558b18a0cd45d
+1:18:18 PM:   baseRelDir: true
+1:18:18 PM:   buildId: 6a4d348c3d0a3c000864a51d
+1:18:18 PM:   deployId: 6a4d348c3d0a3c000864a51f
+1:18:19 PM: Failed during stage 'building site': Build script returned non-zero exit code: 2 (https://ntl.fyi/exit-code-2)
+1:18:19 PM: ​
+1:18:19 PM: ❯ Current directory
+1:18:19 PM:   /opt/build/repo
+1:18:19 PM: ​
+1:18:19 PM: ❯ Config file
+1:18:19 PM:   /opt/build/repo/netlify.toml
+1:18:19 PM: ​
+1:18:19 PM: ❯ Context
+1:18:19 PM:   production
+1:18:19 PM: ​
+1:18:19 PM: build.command from netlify.toml                               
+1:18:19 PM: ────────────────────────────────────────────────────────────────
+1:18:19 PM: ​
+1:18:19 PM: $ npm run build
+1:18:19 PM: > starter-kit-v4@1.0.0 build
+1:18:19 PM: > npm run build:sass && npm run build:eleventy
+1:18:19 PM: > starter-kit-v4@1.0.0 build:sass
+1:18:19 PM: > ./node_modules/.bin/sass src/assets/sass:./src/assets/css
+1:18:19 PM: sh: 1: ./node_modules/.bin/sass: not found
+1:18:19 PM: ​
+1:18:19 PM: "build.command" failed                                        
+1:18:19 PM: ────────────────────────────────────────────────────────────────
+1:18:19 PM: ​
+1:18:19 PM:   Error message
+1:18:19 PM:   Command failed with exit code 127: npm run build (https://ntl.fyi/exit-code-127)
+1:18:19 PM: ​
+1:18:19 PM:   Error location
+1:18:19 PM:   In build.command from netlify.toml:
+1:18:19 PM:   npm run build
+1:18:19 PM: ​
+1:18:19 PM:   Resolved config
+1:18:19 PM:   build:
+1:18:19 PM:     command: npm run build
+1:18:19 PM:     commandOrigin: config
+1:18:19 PM:     environment:
+1:18:19 PM:       - NODE_VERSION
+1:18:19 PM:     publish: /opt/build/repo/public
+1:18:19 PM:     publishOrigin: config
+1:18:19 PM: Build failed due to a user error: Build script returned non-zero exit code: 2
+1:18:19 PM: Failing build: Failed to build site
+1:18:19 PM: Finished processing build request in 1m18.713
