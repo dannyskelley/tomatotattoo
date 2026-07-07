@@ -1,0 +1,157 @@
+The Netlify deploy errored, with the following guidance provided:
+
+- Relevant error lines
+  - [line 59](#L59): Error: Cannot find module '/opt/build/repo/node_modules/@11ty/eleventy/cmd.cjs'
+  - [line 73](#L73): Command failed with exit code 1: node ./node_modules/sass/sass.js src/assets/sass:./src/assets/css && ELEVENTY_ENV=PROD node .
+  - [lines 76-82](#L76-L82): build.command from netlify.toml and resolved command invoking node ./node_modules/@11ty/eleventy/cmd.cjs
+  - (context) [line 26](#L26) shows Netlify detected Eleventy "3.1.6" but the module file referenced by the build command is missing.
+
+Diagnosis
+- Error type: MODULE_NOT_FOUND at runtime when Netlify runs the configured build.command.
+- Cause: The build command calls node ./node_modules/@11ty/eleventy/cmd.cjs but that file does not exist in the installed node_modules. This can happen if:
+  1) @11ty/eleventy isn't actually installed (package missing from package.json or install failed), or
+  2) The package is installed but the CLI entrypoint path used in the build.command is incorrect for the installed Eleventy version (so cmd.cjs doesn't exist), or
+  3) the earlier npm install step logged an npm internal error ([line 19](#L19)) which may have prevented the package from being installed properly.
+
+Solution — steps to verify and fix
+1. Verify Eleventy is declared and committed
+   - Open your repository package.json and confirm @11ty/eleventy is present in dependencies or devDependencies:
+     https://github.com/dannyskelley/tomatotattoo/blob/main/package.json
+   - Locally run: npm ls @11ty/eleventy
+     - If it is missing, add it and commit:
+       - npm install --save-dev @11ty/eleventy
+       - commit package.json and package-lock.json
+
+2. Prefer a robust invocation rather than relying on a hard-coded cmd.cjs path
+   - Replace the direct module path in netlify.toml with npx (or an npm script). npx will invoke the package’s binary using the package’s published bin config and avoids hardcoding internal file paths that can change between versions.
+
+   Option A — Update netlify.toml build.command to use npx:
+   - Change the command in netlify.toml from the failing line to this:
+```toml
+[build]
+  command = "node ./node_modules/sass/sass.js src/assets/sass:./src/assets/css && ELEVENTY_ENV=PROD npx @11ty/eleventy"
+  publish = "public"
+```
+
+   Option B — Add an npm script and use npm run build (recommended)
+   - In package.json add a build script (adjust eleventy flags / input/output as your project requires):
+```json
+{
+  "scripts": {
+    "build": "node ./node_modules/sass/sass.js src/assets/sass:./src/assets/css && ELEVENTY_ENV=PROD eleventy"
+  }
+}
+```
+   - Then set Netlify to run: npm run build (update netlify.toml build.command accordingly):
+```toml
+[build]
+  command = "npm run build"
+  publish = "public"
+```
+   - Commit package.json and netlify.toml changes.
+
+3. If npm showed internal errors during install (you had "npm error Exit handler never called!" in the logs), clear Netlify’s build cache and retry a fresh build:
+   - In Netlify UI: Trigger a "Clear cache and deploy site" (or set an environment variable to force a fresh install).
+   - Locally, verify you can run npm install without errors; if npm itself fails consistently, consider removing node_modules & package-lock and reinstalling, or try a different npm version.
+
+4. Verify the fix
+   - Once deployed, check the build log to confirm the build runs the eleventy CLI via npx or the script and that node_modules/@11ty/eleventy is present during the build (no MODULE_NOT_FOUND for cmd.cjs).
+
+Notes
+- I recommended verifying @11ty/eleventy exists in package.json before changing invocation paths.
+- Using npx or an npm script avoids depending on internal file paths such as cmd.cjs which may differ by version and prevents this exact MODULE_NOT_FOUND failure.
+
+The relevant error logs are:
+
+Line 0: build-image version: 969defd95f3977f8de9cb1f48802a7e6f3d8c0b3 (noble-new-builds)
+Line 1: buildbot version: 969defd95f3977f8de9cb1f48802a7e6f3d8c0b3
+Line 2: Fetching cached dependencies
+Line 3: Failed to fetch cache, continuing with build
+Line 4: Starting to prepare the repo for build
+Line 5: No cached dependencies found. Cloning fresh repo
+Line 6: git clone --filter=blob:none https://github.com/dannyskelley/tomatotattoo
+Line 7: Preparing Git Reference refs/heads/main
+Line 8: Custom build command detected. Proceeding with the specified command: 'node ./node_modules/sass/sass.js src/assets/sass:./src/as
+Line 9: Installing dependencies
+Line 10: mise ~/.config/mise/config.toml tools: python@3.14.3
+Line 11: mise ~/.config/mise/config.toml tools: ruby@3.4.8
+Line 12: mise ~/.config/mise/config.toml tools: go@1.26.2
+Line 13: Attempting Node.js version '20' from .nvmrc
+Line 14: v20.20.2 is already installed.
+Line 15: Now using node v20.20.2 (npm v10.8.2)
+Line 16: Enabling Node.js Corepack
+Line 17: No npm workspaces detected
+Line 18: Installing npm packages using npm version 10.8.2
+Line 19: npm error Exit handler never called!
+Line 20: npm error This is an error with npm itself. Please report this error at:
+Line 21: npm error   <https://github.com/npm/cli/issues>
+Line 22: npm error A complete log of this run can be found in: /opt/buildhome/.npm/_logs/2026-07-07T17_51_47_081Z-debug-0.log
+Line 23: npm packages installed
+Line 24: Successfully installed dependencies
+Line 25: Detected 1 framework(s)
+Line 26: "eleventy" at version "3.1.6"
+Line 27: Starting build script
+Line 28: Section completed: initializing
+Line 29: ​
+Line 30: Netlify Build                                                 
+Line 31: ────────────────────────────────────────────────────────────────
+Line 32: ​
+Line 33: ❯ Version
+Line 34:   @netlify/build 36.1.2
+Line 35: ​
+Line 36: ❯ Flags
+Line 37:   accountId: 5c9a4f966df558b18a0cd45d
+Line 38:   baseRelDir: true
+Line 39:   buildId: 6a4d3cad08136100086b9642
+Line 40:   deployId: 6a4d3cad08136100086b9644
+Line 41: Failed during stage 'building site': Build script returned non-zero exit code: 2
+Line 42: ​
+Line 43: ❯ Current directory
+Line 44:   /opt/build/repo
+Line 45: ​
+Line 46: ❯ Config file
+Line 47:   /opt/build/repo/netlify.toml
+Line 48: ​
+Line 49: ❯ Context
+Line 50:   production
+Line 51: ​
+Line 52: build.command from netlify.toml                               
+Line 53: ────────────────────────────────────────────────────────────────
+Line 54: ​
+Line 55: $ node ./node_modules/sass/sass.js src/assets/sass:./src/assets/css && ELEVENTY_ENV=PROD node ./node_modules/@11ty/eleventy
+Line 56: node:internal/modules/cjs/loader:1210
+Line 57:   throw err;
+Line 58:   ^
+Line 59: Error: Cannot find module '/opt/build/repo/node_modules/@11ty/eleventy/cmd.cjs'
+Line 60:     at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+Line 61:     at Module._load (node:internal/modules/cjs/loader:1038:27)
+Line 62:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+Line 63:     at node:internal/main/run_main_module:28:49 {
+Line 64:   code: 'MODULE_NOT_FOUND',
+Line 65:   requireStack: []
+Line 66: }
+Line 67: Node.js v20.20.2
+Line 68: ​
+Line 69: "build.command" failed                                        
+Line 70: ────────────────────────────────────────────────────────────────
+Line 71: ​
+Line 72:   Error message
+Line 73:   Command failed with exit code 1: node ./node_modules/sass/sass.js src/assets/sass:./src/assets/css && ELEVENTY_ENV=PROD node .
+Line 74: ​
+Line 75:   Error location
+Line 76:   In build.command from netlify.toml:
+Line 77:   node ./node_modules/sass/sass.js src/assets/sass:./src/assets/css && ELEVENTY_ENV=PROD node ./node_modules/@11ty/eleventy/cmd.
+Line 78: ​
+Line 79:   Resolved config
+Line 80:   build:
+Line 81:     command: node ./node_modules/sass/sass.js src/assets/sass:./src/assets/css &&
+Line 82:       ELEVENTY_ENV=PROD node ./node_modules/@11ty/eleventy/cmd.cjs
+Line 83:     commandOrigin: config
+Line 84:     environment:
+Line 85:       - NODE_VERSION
+Line 86:       - NPM_FLAGS
+Line 87:     publish: /opt/build/repo/public
+Line 88:     publishOrigin: config
+Line 89: Build failed due to a user error: Build script returned non-zero exit code: 2
+Line 90: Failing build: Failed to build site
+Line 91: Finished processing build request in 1m18.711s
