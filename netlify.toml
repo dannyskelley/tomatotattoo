@@ -2,6 +2,5 @@
   publish = "public/"
   command = "npm run build"
 
-[[plugins]]
-  # Installs the Lighthouse Build Plugin for all deploy contexts
-  package = "@netlify/plugin-lighthouse"
+[build.environment]
+  NODE_VERSION = "20"

@@ -1,0 +1,123 @@
+The Netlify deploy errored, with the following guidance provided:
+
+Diagnosis
+
+- The immediate build failure is because the build script calls run-s but the binary is not found: [line 63](#L63) shows "sh: 1: run-s: not found", and the Netlify build fails when running npm run build ([lines 60–63](#L60-L63), [lines 69–73](#L69-L73)).
+- There is also a Node engine mismatch warning for sharp: [lines 13–16](#L13-L16) show sharp@0.35.3 requires Node >=20.9.0 while the environment is v18.20.8. npm also logged an internal error around exit handling ([lines 18–21](#L18-L21)), which can be triggered by engine incompatibilities, but the fatal build error is the missing run-s executable.
+
+Solution
+
+1) Fix the missing run-s (npm-run-all)
+- Verify whether npm-run-all is present in package.json and that package.json/lockfile are committed:
+  - View your repo package.json: https://github.com/dannyskelley/tomatotattoo/blob/main/package.json
+  - If npm-run-all (or another package providing run-s) is not listed in devDependencies or dependencies, add it.
+- To add it locally and commit:
+```bash
+npm install --save-dev npm-run-all
+git add package.json package-lock.json
+git commit -m "chore: add npm-run-all for run-s used in build script"
+git push
+```
+- Alternatively, if you prefer not to add npm-run-all, change your package.json build script to not use run-s (for example, call the individual build:* scripts in sequence) and commit that change.
+
+2) Resolve the Node/sharp engine mismatch (recommended)
+- sharp@0.35.3 requires Node >=20.9.0 ([lines 13–16](#L13-L16)). Running on Node 18 can cause warnings or installation/runtime problems.
+- Recommended: target Node 20.x on Netlify. You can set the Node version by adding an .nvmrc at repo root (or setting engines.node in package.json). Example .nvmrc:
+```text
+20
+```
+Commit that file:
+```bash
+echo "20" > .nvmrc
+git add .nvmrc
+git commit -m "ci: use Node 20 on Netlify"
+git push
+```
+- After committing .nvmrc (or engines.node), Netlify will use the specified Node version on the next build. For full instructions see Netlify docs for changing Node versions: https://docs.netlify.com/configure-builds/manage-dependencies/#node-js-and-javascript
+
+3) Rebuild
+- After applying step 1 (and step 2 if you changed Node version), trigger a new deploy on Netlify. The build should find run-s and install sharp compatible with Node 20.
+
+Optional alternatives
+- If you cannot change Node on Netlify, downgrade sharp to a version that supports Node 18 (not recommended unless necessary).
+- If npm shows other internal errors after changing Node, run a clean install locally (rm -rf node_modules package-lock.json && npm install) to ensure lockfile and modules are consistent, commit the lockfile, and redeploy.
+
+If you want, I can open your package.json and suggest the exact change to the scripts or the dependency entry to add.
+
+The relevant error logs are:
+
+Line 0: build-image version: 969defd95f3977f8de9cb1f48802a7e6f3d8c0b3 (noble-new-builds)
+Line 1: buildbot version: 969defd95f3977f8de9cb1f48802a7e6f3d8c0b3
+Line 2: Fetching cached dependencies
+Line 3: Failed to fetch cache, continuing with build
+Line 4: Starting to prepare the repo for build
+Line 5: No cached dependencies found. Cloning fresh repo
+Line 6: git clone --filter=blob:none https://github.com/dannyskelley/tomatotattoo
+Line 7: Preparing Git Reference refs/heads/main
+Line 8: Installing dependencies
+Line 9: mise ~/.config/mise/config.toml tools: python@3.14.3
+Line 10: mise ~/.config/mise/config.toml tools: ruby@3.4.8
+Line 11: mise ~/.config/mise/config.toml tools: go@1.26.2
+Line 12: v18.20.8 is already installed.
+Line 13: npm warn EBADENGINE Unsupported engine {
+Line 14: npm warn EBADENGINE   package: 'sharp@0.35.3',
+Line 15: npm warn EBADENGINE   required: { node: '>=20.9.0' },
+Line 16: npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+Line 17: npm warn EBADENGINE }
+Line 18: npm error Exit handler never called!
+Line 19: npm error This is an error with npm itself. Please report this error at:
+Line 20: npm error   <https://github.com/npm/cli/issues>
+Line 21: npm error A complete log of this run can be found in: /opt/buildhome/.npm/_logs/2026-07-07T17_00_05_022Z-debug-0.log
+Line 22: npm packages installed
+Line 23: Successfully installed dependencies
+Line 24: Detected 1 framework(s)
+Line 25: "eleventy" at version "3.1.6"
+Line 26: Starting build script
+Line 27: Section completed: initializing
+Line 28: ​
+Line 29: Netlify Build                                                 
+Line 30: ────────────────────────────────────────────────────────────────
+Line 31: ​
+Line 45:   /opt/build/repo/netlify.toml
+Line 46: ​
+Line 47: ❯ Context
+Line 48:   production
+Line 49: ​
+Line 50: ❯ Installing plugins
+Line 51:    - @netlify/plugin-lighthouse@6.0.1
+Line 52: ​
+Line 53: ❯ Loading plugins
+Line 54:    - @netlify/plugin-lighthouse@6.0.1 from netlify.toml
+Line 55: Failed during stage 'building site': Build script returned non-zero exit code: 2
+Line 56: ​
+Line 57: build.command from netlify.toml                               
+Line 58: ────────────────────────────────────────────────────────────────
+Line 59: ​
+Line 60: $ npm run build
+Line 61: > starter-kit-v4@1.0.0 build
+Line 62: > run-s build:*
+Line 63: sh: 1: run-s: not found
+Line 64: ​
+Line 65: "build.command" failed                                        
+Line 66: ────────────────────────────────────────────────────────────────
+Line 67: ​
+Line 68:   Error message
+Line 69:   Command failed with exit code 127: npm run build
+Line 70: ​
+Line 71:   Error location
+Line 72:   In build.command from netlify.toml:
+Line 73:   npm run build
+Line 74: ​
+Line 75:   Resolved config
+Line 76:   build:
+Line 77:     command: npm run build
+Line 78:     commandOrigin: config
+Line 79:     publish: /opt/build/repo/public
+Line 80:     publishOrigin: config
+Line 81:   plugins:
+Line 82:     - inputs: {}
+Line 83:       origin: config
+Line 84:       package: "@netlify/plugin-lighthouse"
+Line 85: Build failed due to a user error: Build script returned non-zero exit code: 2
+Line 86: Failing build: Failed to build site
+Line 87: Finished processing build request in 1m31.771s
