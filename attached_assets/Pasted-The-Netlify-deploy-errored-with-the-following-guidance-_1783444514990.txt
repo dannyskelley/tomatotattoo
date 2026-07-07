@@ -1,0 +1,109 @@
+The Netlify deploy errored, with the following guidance provided:
+
+Diagnosis
+- Relevant log lines: build starts at [#L54-L56], the missing binary error at [#L59], and the failing build exit at [#L65-L69].
+  - [#L54-L56] shows Netlify ran npm run build which runs the sass script.
+  - [#L59] shows the runtime error: "sass: not found".
+  - [#L65-L69] shows the npm build returning exit code 127 and failing the deploy.
+
+- Error type: runtime CLI not found (exit code 127).
+- Root cause: the build script calls the sass CLI ("sass src/assets/sass:./src/assets/css") but the sass package/CLI is not installed (or not present in package.json so it wasn't installed), so the binary is not available during the Netlify build.
+
+Solution
+1) Verify package.json contains sass
+- Confirm your repository's package.json lists sass in dependencies or devDependencies:
+  https://github.com/dannyskelley/tomatotattoo/blob/main/package.json
+- If sass is missing, add it. If it's present but not committed, commit the change so Netlify can install it.
+
+2) Add sass and commit (recommended)
+- Locally run:
+```bash
+npm install --save-dev sass
+git add package.json package-lock.json
+git commit -m "chore: add sass devDependency for build"
+git push
+```
+- This ensures npm installs the sass CLI into node_modules/.bin so the npm script "sass ..." will find it during the Netlify build.
+
+3) Alternative quick fix (not recommended long-term)
+- Change the build script in package.json to invoke npx, which will run a local or on-demand install:
+```json
+"scripts": {
+  "build:sass": "npx sass src/assets/sass:./src/assets/css",
+  ...
+}
+```
+- Commit the change and push. But adding sass as a devDependency is preferable for reproducible builds.
+
+4) Re-run the Netlify build
+- After committing, trigger a new deploy (push to main or re-run the deploy in Netlify). The sass binary will be available and the build should proceed past the previous failure.
+
+Notes
+- You do not need to change Node versions for this error (Netlify is using Node v20.20.2 already). If you do need to change Node versions in the future, see Netlify docs: https://docs.netlify.com/configure-builds/manage-dependencies/#node-js-and-javascript
+
+The relevant error logs are:
+
+Line 0: build-image version: 969defd95f3977f8de9cb1f48802a7e6f3d8c0b3 (noble-new-builds)
+Line 1: buildbot version: 969defd95f3977f8de9cb1f48802a7e6f3d8c0b3
+Line 2: Fetching cached dependencies
+Line 3: Failed to fetch cache, continuing with build
+Line 4: Starting to prepare the repo for build
+Line 5: No cached dependencies found. Cloning fresh repo
+Line 6: git clone --filter=blob:none https://github.com/dannyskelley/tomatotattoo
+Line 7: Preparing Git Reference refs/heads/main
+Line 8: Installing dependencies
+Line 9: mise ~/.config/mise/config.toml tools: python@3.14.3
+Line 10: mise ~/.config/mise/config.toml tools: ruby@3.4.8
+Line 11: mise ~/.config/mise/config.toml tools: go@1.26.2
+Line 12: Attempting Node.js version '20' from .nvmrc
+Line 13: v20.20.2 is already installed.
+Line 14: Now using node v20.20.2 (npm v10.8.2)
+Line 15: Enabling Node.js Corepack
+Line 16: No npm workspaces detected
+Line 17: Installing npm packages using npm version 10.8.2
+Line 18: Failed during stage 'building site': Build script returned non-zero exit code: 2
+Line 19: npm error Exit handler never called!
+Line 20: npm error This is an error with npm itself. Please report this error at:
+Line 21: npm error   <https://github.com/npm/cli/issues>
+Line 22: npm error A complete log of this run can be found in: /opt/buildhome/.npm/_logs/2026-07-07T17_13_22_040Z-debug-0.log
+Line 23: npm packages installed
+Line 24: Successfully installed dependencies
+Line 25: Detected 1 framework(s)
+Line 26: "eleventy" at version "3.1.6"
+Line 27: Starting build script
+Line 28: Section completed: initializing
+Line 29: ​
+Line 30: Netlify Build                                                 
+Line 31: ────────────────────────────────────────────────────────────────
+Line 32: ​
+Line 51: build.command from netlify.toml                               
+Line 52: ────────────────────────────────────────────────────────────────
+Line 53: ​
+Line 54: $ npm run build
+Line 55: > starter-kit-v4@1.0.0 build
+Line 56: > npm run build:sass && npm run build:eleventy
+Line 57: > starter-kit-v4@1.0.0 build:sass
+Line 58: > sass src/assets/sass:./src/assets/css
+Line 59: sh: 1: sass: not found
+Line 60: ​
+Line 61: "build.command" failed                                        
+Line 62: ────────────────────────────────────────────────────────────────
+Line 63: ​
+Line 64:   Error message
+Line 65:   Command failed with exit code 127: npm run build
+Line 66: ​
+Line 67:   Error location
+Line 68:   In build.command from netlify.toml:
+Line 69:   npm run build
+Line 70: ​
+Line 71:   Resolved config
+Line 72:   build:
+Line 73:     command: npm run build
+Line 74:     commandOrigin: config
+Line 75:     environment:
+Line 76:       - NODE_VERSION
+Line 77:     publish: /opt/build/repo/public
+Line 78:     publishOrigin: config
+Line 79: Build failed due to a user error: Build script returned non-zero exit code: 2
+Line 80: Failing build: Failed to build site
+Line 81: Finished processing build request in 1m18.264s
