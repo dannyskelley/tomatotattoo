@@ -1,0 +1,121 @@
+The Netlify deploy errored, with the following guidance provided:
+
+- Relevant error lines
+  - The build runs your build command: [line 53](#L53).
+  - npm kicks off your scripts and the build:sass script runs: [line 56](#L56) and [line 57](#L57).
+  - The actual failure is the Sass binary not found: [line 58](#L58).
+  - Netlify reports the overall build.command failed (exit code 127): [line 60](#L60) and [line 64](#L64).
+  - There is also an earlier npm internal error that may have affected install integrity: [line 17](#L17)-[line 20](#L20).
+
+Diagnosis
+- Error type: Missing CLI binary / script failure (exit code 127).
+- Cause: The build script tries to run ./node_modules/.bin/sass (from the "build:sass" npm script) but that executable is not present in node_modules, so the shell returns "not found" ([line 58](#L58)). This happens when the "sass" package (Dart Sass CLI) is not installed or the install step failed. The earlier npm internal error ([line 17](#L17)-[line 20](#L20)) suggests the install step may not have completed cleanly.
+
+Solution
+1. Verify your repo actually lists the Sass package and that package.json is committed
+   - Open your package.json in the repo to check devDependencies/scripts: https://github.com/dannyskelley/tomatotattoo/blob/main/package.json
+   - Ensure "sass" (the Dart Sass CLI) is present under devDependencies or dependencies. If it is missing or package.json is not committed, add/commit it before changing build behavior.
+
+2. If "sass" is missing, add it and commit
+   - Locally run:
+```bash
+npm install --save-dev sass
+git add package.json package-lock.json
+git commit -m "chore: add sass CLI"
+git push
+```
+   - This installs the CLI into node_modules/.bin so ./node_modules/.bin/sass will exist during the Netlify build.
+
+3. If "sass" is already in package.json but the build still fails, the npm install step may have failed (note the npm internal error at [line 17](#L17)-[line 20](#L20)). Try these remedial steps locally and push changes:
+   - Clear and reinstall dependencies:
+```bash
+rm -rf node_modules package-lock.json
+npm cache clean --force
+npm install
+git add package-lock.json
+git commit -m "chore: refresh lockfile"
+git push
+```
+   - If npm continues to throw "Exit handler never called!", try upgrading/downgrading npm or pinning Node/NPM for Netlify and re-deploy. See Netlify docs for changing Node versions: https://docs.netlify.com/configure-builds/manage-dependencies/#node-js-and-javascript
+
+4. Make the build script more robust (optional but recommended)
+   - Instead of hardcoding the path to the binary, use npm's resolution or npx so the script works even if the bin path varies. Update your package.json script:
+```json
+"scripts": {
+  "build:sass": "npx sass src/assets/sass:./src/assets/css",
+  "build:eleventy": "eleventy",
+  "build": "npm run build:sass && npm run build:eleventy"
+}
+```
+   - Commit and push the change.
+
+5. Re-run the Netlify build
+   - After ensuring sass is present in package.json and lockfile is up-to-date (and optionally updating the script), push and trigger a new build. The missing-binary error at [line 58](#L58) should be resolved.
+
+If after these steps you still see install errors referencing npm internals (the earlier "Exit handler never called!" at [line 17](#L17)), include the npm debug log referenced in the logs (/opt/buildhome/.npm/_logs/... ) so we can inspect the install failure.
+
+The relevant error logs are:
+
+Line 7: Installing dependencies
+Line 8: mise ~/.config/mise/config.toml tools: python@3.14.3
+Line 9: mise ~/.config/mise/config.toml tools: ruby@3.4.8
+Line 10: mise ~/.config/mise/config.toml tools: go@1.26.2
+Line 11: Attempting Node.js version '20' from .nvmrc
+Line 12: v20.20.2 is already installed.
+Line 13: Now using node v20.20.2 (npm v10.8.2)
+Line 14: Enabling Node.js Corepack
+Line 15: No npm workspaces detected
+Line 16: Installing npm packages using npm version 10.8.2
+Line 17: npm error Exit handler never called!
+Line 18: npm error This is an error with npm itself. Please report this error at:
+Line 19: npm error   <https://github.com/npm/cli/issues>
+Line 20: npm error A complete log of this run can be found in: /opt/buildhome/.npm/_logs/2026-07-07T17_40_45_088Z-debug-0.log
+Line 21: npm packages installed
+Line 22: Successfully installed dependencies
+Line 23: Detected 1 framework(s)
+Line 24: "eleventy" at version "3.1.6"
+Line 25: Starting build script
+Line 26: Section completed: initializing
+Line 27: Failed during stage 'building site': Build script returned non-zero exit code: 2
+Line 28: ​
+Line 29: Netlify Build                                                 
+Line 30: ────────────────────────────────────────────────────────────────
+Line 31: ​
+Line 32: ❯ Version
+Line 33:   @netlify/build 36.1.2
+Line 34: ​
+Line 35: ❯ Flags
+Line 36:   accountId: 5c9a4f966df558b18a0cd45d
+Line 37:   baseRelDir: true
+Line 50: build.command from netlify.toml                               
+Line 51: ────────────────────────────────────────────────────────────────
+Line 52: ​
+Line 53: $ npm run build
+Line 54: > starter-kit-v4@1.0.0 build
+Line 55: > npm run build:sass && npm run build:eleventy
+Line 56: > starter-kit-v4@1.0.0 build:sass
+Line 57: > ./node_modules/.bin/sass src/assets/sass:./src/assets/css
+Line 58: sh: 1: ./node_modules/.bin/sass: not found
+Line 59: ​
+Line 60: "build.command" failed                                        
+Line 61: ────────────────────────────────────────────────────────────────
+Line 62: ​
+Line 63:   Error message
+Line 64:   Command failed with exit code 127: npm run build
+Line 65: ​
+Line 66:   Error location
+Line 67:   In build.command from netlify.toml:
+Line 68:   npm run build
+Line 69: ​
+Line 70:   Resolved config
+Line 71:   build:
+Line 72:     command: npm run build
+Line 73:     commandOrigin: config
+Line 74:     environment:
+Line 75:       - NODE_VERSION
+Line 76:       - NPM_FLAGS
+Line 77:     publish: /opt/build/repo/public
+Line 78:     publishOrigin: config
+Line 79: Build failed due to a user error: Build script returned non-zero exit code: 2
+Line 80: Failing build: Failed to build site
+Line 81: Finished processing build request in 1m18.738s

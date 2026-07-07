@@ -1,6 +1,6 @@
 [build]
   publish = "public/"
-  command = "npm run build"
+  command = "node ./node_modules/sass/sass.js src/assets/sass:./src/assets/css && ELEVENTY_ENV=PROD node ./node_modules/@11ty/eleventy/cmd.cjs"
 
 [build.environment]
   NODE_VERSION = "20"
